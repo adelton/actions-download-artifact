@@ -1,0 +1,43 @@
+name: Test running two download-artifacts in parallel
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - run: cp package.json the-package.json ; cp package-lock.json the-package-lock.json
+      - uses: actions/upload-artifact@v6
+        with:
+          name: the-package.json
+          path: the-package.json
+          retention-days: 1
+      - uses: actions/upload-artifact@v6
+        with:
+          name: the-package-lock.json
+          path: the-package-lock.json
+          retention-days: 1
+
+  download:
+    runs-on: ubuntu-26.04
+    needs: [ upload ]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: the-package.json
+          path: the-package.json
+        background: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: the-package-lock.json
+          path: the-package-lock.json
+        background: true
+      - wait-all:
+      - run: ls -la the-package.json the-package-lock.json
+
